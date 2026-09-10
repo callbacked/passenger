@@ -1,6 +1,6 @@
 # passenger
 
-an interesting experiment: youtube and twitch played through a canvas in the browser, with a cloudflare worker doing the fetching.
+an interesting experiment.
 
 ## run it locally
 
