@@ -4,7 +4,7 @@ main = "src/index.ts"
 compatibility_date = "2026-09-09"
 # Better Auth needs AsyncLocalStorage.
 compatibility_flags = ["nodejs_compat"]
-workers_dev = true
+workers_dev = false
 
 # Workers Logs keep every request and console line; stream them with `npx wrangler tail`.
 [observability]
