@@ -40,4 +40,4 @@ migrations_dir = "migrations"
 # Passenger sign-in (see README "Who can watch"): put the Google OAuth client ID here, then store
 # GOOGLE_CLIENT_SECRET and BETTER_AUTH_SECRET with `npx wrangler secret put`.
 [vars]
-# GOOGLE_CLIENT_ID = "123456789-abc.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = "901022623077-4v2alsghke3f47pu3d2n1h7fhkb1ao1o.apps.googleusercontent.com"
