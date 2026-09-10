@@ -1,6 +1,6 @@
 # passenger
 
-an interesting experiment: youtube and twitch played through a canvas in the browser, with a cloudflare worker doing the fetching. everything is typescript.
+an interesting experiment: youtube and twitch played through a canvas in the browser, with a cloudflare worker doing the fetching.
 
 ## run it locally
 
