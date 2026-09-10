@@ -1,0 +1,43 @@
+name = "tesla-video-drive"
+account_id = "c118bef2bb598b15c303e2cf84657cc2"
+main = "src/index.ts"
+compatibility_date = "2026-09-09"
+# Better Auth needs AsyncLocalStorage.
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Workers Logs keep every request and console line; stream them with `npx wrangler tail`.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[[routes]]
+pattern = "passenger.autorun.sh"
+custom_domain = true
+
+# The custom domain above would otherwise become the request origin in `wrangler dev`.
+[dev]
+host = "localhost:8787"
+upstream_protocol = "http"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[kv_namespaces]]
+binding = "APP_DATA"
+id = "8cc14c02f53b4f73b803bbfa66608fb6"
+
+# Better Auth users, sessions and device codes (Drizzle schema in src/db/schema.ts).
+# Generate migrations with `npm run db:generate`, apply them with `npm run db:migrate`.
+[[d1_databases]]
+binding = "DB"
+database_name = "passenger-auth"
+database_id = "c220c3ed-ceb7-440c-9a2c-63d41309428e"
+migrations_dir = "migrations"
+
+# Passenger sign-in (see README "Who can watch"): put the Google OAuth client ID here, then store
+# GOOGLE_CLIENT_SECRET and BETTER_AUTH_SECRET with `npx wrangler secret put`.
+[vars]
+# GOOGLE_CLIENT_ID = "123456789-abc.apps.googleusercontent.com"

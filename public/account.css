@@ -1,0 +1,25 @@
+.account-open { width:100%; min-height:44px; padding:10px 12px; border:1px solid #383838; border-radius:7px; background:#222; color:#ededed; text-align:left; font-size:12px; }
+.account-open:hover { background:#303030; }
+.account-dialog { width:min(460px,calc(100% - 32px)); max-height:calc(100vh - 40px); max-height:calc(100dvh - 40px); box-sizing:border-box; overflow:auto; border:1px solid #414141; border-radius:14px; padding:24px; background:#181818; color:#ededed; font:inherit; box-shadow:0 20px 80px #0008; }
+.account-dialog::backdrop { background:#000b; }
+.account-dialog-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.account-dialog h2 { margin:0; font-size:21px; letter-spacing:-.5px; }
+.account-dialog p { font-size:14px; line-height:1.6; margin:12px 0; }
+.account-dialog .account-note { color:#a4a4a4; font-size:12px; }
+.account-close { display:grid; place-items:center; flex-shrink:0; min-width:44px; min-height:44px; border:0; border-radius:6px; background:none; color:#bdbdbd; font-size:27px; }
+.account-close:hover { background:#2b2b2b; }
+.account-code { display:block; padding:20px 10px; margin:16px 0; border:1px solid #404040; border-radius:8px; background:#101010; text-align:center; font:600 28px ui-monospace,monospace; letter-spacing:2px; overflow-wrap:anywhere; }
+.account-pairing { display:flex; align-items:center; gap:20px; margin:16px 0; }
+.account-qr { display:block; flex-shrink:0; width:200px; height:200px; padding:8px; box-sizing:border-box; border-radius:10px; background:#fff; }
+.account-pairing-manual { flex:1 1 160px; min-width:0; }
+.account-pairing-manual .account-note { margin:0; }
+.account-pairing-manual .account-code { margin:8px 0 12px; padding:14px 6px; font-size:19px; letter-spacing:1px; }
+.account-pairing-manual .account-primary { white-space:nowrap; }
+.account-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.account-primary,.account-secondary { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 16px; box-sizing:border-box; border:1px solid #e8e8e8; border-radius:7px; font:inherit; font-size:13px; font-weight:600; text-decoration:none; }
+.account-primary { background:#e8e8e8; color:#171717; }
+.account-secondary { background:transparent; color:#e8e8e8; border-color:#494949; }
+.account-dialog .account-message { min-height:20px; color:#c7c7c7; font-size:12px; overflow-wrap:anywhere; }
+.account-dialog button:disabled { opacity:.5; }
+@media(max-width:720px) { #account-controls { max-width:220px; } .account-dialog { padding:18px; } }
+@media(max-width:520px) { .account-pairing { flex-direction:column; align-items:stretch; } .account-qr { margin:0 auto; } }

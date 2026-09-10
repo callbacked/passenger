@@ -1,0 +1,45 @@
+{
+  "name": "passenger",
+  "version": "1.0.0",
+  "description": "An experiment: a YouTube and Twitch player that decodes on a browser canvas, with a Cloudflare Worker behind it",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "npm run dev",
+    "build": "node scripts/vendor-player.ts && node scripts/build-web.ts",
+    "dev": "npm run build && node scripts/setup-local.ts && wrangler dev",
+    "typecheck": "wrangler types --include-env=false && tsc -p tsconfig.json && tsc -p web/tsconfig.json && tsc -p tsconfig.playwright.json",
+    "test": "node --test test/*.test.ts",
+    "smoke": "node scripts/smoke-playback.ts",
+    "check": "npm run typecheck && npm run build && wrangler deploy --dry-run --outdir dist",
+    "deploy": "npm run build && wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply passenger-auth --remote",
+    "db:migrate:local": "wrangler d1 migrations apply passenger-auth --local"
+  },
+  "dependencies": {
+    "better-auth": "1.7.3",
+    "drizzle-orm": "0.45.2",
+    "uqr": "0.1.3",
+    "youtubei.js": "18.0.0"
+  },
+  "devDependencies": {
+    "@libmedia/avplayer": "1.3.1",
+    "@playwright/test": "1.63.0",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "22.20.2",
+    "better-sqlite3": "12.11.1",
+    "drizzle-kit": "0.31.10",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "wrangler": "4.130.0"
+  },
+  "overrides": {
+    "miniflare@5.20260908.0-alpha": {
+      "sharp": "0.35.4"
+    }
+  }
+}

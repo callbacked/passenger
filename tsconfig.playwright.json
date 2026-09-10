@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": [
+      "es2023",
+      "dom",
+      "dom.iterable"
+    ],
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "scripts/smoke-playback.ts"
+  ],
+  "exclude": []
+}

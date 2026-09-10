@@ -1,0 +1,10 @@
+# npm run dev generates a private random key in .dev.vars automatically.
+# Production: set MEDIA_SIGNING_SECRET using `npx wrangler secret put MEDIA_SIGNING_SECRET`.
+MEDIA_SIGNING_SECRET=replace-with-at-least-32-random-characters
+
+# Passenger sign-in (Better Auth on D1). `npm run dev` adds a random BETTER_AUTH_SECRET here.
+# Sign-in turns on once GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (or AUTH_DEV_PASSWORD=true for local tests).
+# Production: `npx wrangler secret put GOOGLE_CLIENT_SECRET`, GOOGLE_CLIENT_ID in wrangler.toml [vars].
+# GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+# GOOGLE_CLIENT_SECRET=replace-me
+# AUTH_DEV_PASSWORD=true   # local only: enables email/password sign-in so browser tests can approve a screen

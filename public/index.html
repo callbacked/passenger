@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <meta name="color-scheme" content="dark">
+  <title>Passenger</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/account.css">
+  <script src="/vendor/avplayer/avplayer.js" defer></script>
+  <script type="module" src="/gate.js"></script>
+</head>
+<body>
+  <section class="signin-screen" id="signin-screen" aria-labelledby="signin-title" hidden>
+    <div class="signin-card">
+      <div class="signin-brand"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M5 5h8a9 9 0 0 1 0 18H5V5Zm7 5v8l6-4-6-4Z"/></svg><span>Passenger</span></div>
+      <h1 id="signin-title">Sign in to watch</h1>
+      <p>Scan the code with your phone, then sign in with Google.</p>
+      <div class="signin-pairing">
+        <img class="signin-qr" id="signin-qr" width="220" height="220" alt="QR code that opens the approval page with your code filled in" hidden>
+        <div class="signin-manual">
+          <p class="signin-note">No camera? On your phone, open <strong id="signin-approve-host"></strong> and enter</p>
+          <strong class="signin-code" id="signin-code" data-testid="signin-code">…</strong>
+        </div>
+      </div>
+      <p class="signin-status" id="signin-status" role="status" aria-live="polite" data-testid="signin-status">Checking…</p>
+      <button class="signin-self" id="signin-self" type="button" hidden>Sign in with Google on this screen instead</button>
+    </div>
+  </section>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Passenger home"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M5 5h8a9 9 0 0 1 0 18H5V5Zm7 5v8l6-4-6-4Z"/></svg><span>Passenger</span></a>
+      <div class="navigation-label">WATCH</div>
+      <nav class="source-switch" aria-label="Video provider">
+        <button class="provider-button is-active" type="button" data-provider="youtube" aria-pressed="true" data-testid="provider-youtube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="5"/><path d="m10 9 5 3-5 3Z"/></svg><span>YouTube</span><span class="nav-indicator" aria-hidden="true"></span></button>
+        <button class="provider-button shorts-nav" id="shorts-button" type="button" aria-pressed="false" data-testid="shorts-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3-8 4a4 4 0 0 0 0 7l2 1-1 1a3 3 0 0 0 3 5l7-4a4 4 0 0 0 0-7l-2-1 2-1a3 3 0 0 0-3-5Z"/><path d="m10 9 5 3-5 3Z"/></svg><span>Shorts</span><span class="nav-indicator" aria-hidden="true"></span></button>
+        <button class="provider-button" type="button" data-provider="twitch" aria-pressed="false" data-testid="provider-twitch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h17v12l-5 5h-5l-3 3v-3H5V3Z"/><path d="M11 7v6m5-6v6"/></svg><span>Twitch</span><span class="nav-indicator" aria-hidden="true"></span></button>
+      </nav>
+      <nav class="account-navigation" id="account-navigation" aria-label="Your YouTube library" hidden><div class="navigation-label">YOUR LIBRARY</div><button class="library-button" type="button" data-account-feed="home">Home</button><button class="library-button" type="button" data-account-feed="subscriptions">Subscriptions</button><button class="library-button" type="button" data-account-feed="liked">Liked videos</button></nav>
+      <div id="account-controls"></div>
+      <div id="access-controls" hidden></div>
+      <div class="sidebar-bottom"><a class="diagnostics" href="/probe/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Browser check<span aria-hidden="true">↗</span></a><span class="connection" id="connection-status" role="status"><span class="connection-dot" aria-hidden="true"></span><span id="connection-label">Connecting</span></span></div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <form id="source-form" novalidate>
+          <label class="sr-only" for="source-input" id="source-label">Search YouTube or paste a link</label>
+          <div class="search-bar"><svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="source-input" name="source" type="text" inputmode="text" placeholder="Search YouTube or paste a link" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="source-hint" required data-testid="source-input"><button class="watch-button" id="watch-button" type="submit" data-testid="watch-button"><span id="watch-label">Search</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div>
+          <p class="sr-only" id="source-hint">Search for a video or paste a YouTube link.</p>
+        </form>
+        <span class="topbar-note" id="source-note">YouTube · Public videos</span>
+      </header>
+
+      <main>
+        <section class="shorts-section" id="shorts-section" aria-label="YouTube Shorts" hidden>
+          <div class="shorts-heading"><div><h1>Shorts</h1><p id="shorts-query">Funny animals</p></div><div class="shorts-heading-tools"><div class="shorts-modes" id="shorts-modes" hidden><button id="shorts-personal" type="button" aria-pressed="false">Your feed</button><button id="shorts-public" type="button" aria-pressed="true">Topics</button></div><span id="shorts-status" role="status" aria-live="polite"></span></div></div>
+          <div class="shorts-viewer">
+            <div class="shorts-feed" id="shorts-feed" aria-label="Scroll to the next Short" tabindex="0" data-testid="shorts-feed"></div>
+            <div class="audio-language shorts-audio-language" id="shorts-audio-language" hidden>
+              <div class="audio-language-control"><label for="shorts-audio-track">Audio</label><span class="audio-select"><select id="shorts-audio-track" aria-label="Short audio language" data-testid="shorts-audio-language" disabled></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></span></div>
+              <span class="audio-language-message" id="shorts-audio-message" role="status" aria-live="polite"></span>
+            </div>
+            <div class="shorts-actions" id="shorts-actions" hidden>
+              <button class="shorts-action" id="shorts-pause" type="button" aria-label="Pause Short" disabled><svg id="shorts-pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3v14H7zm7 0h3v14h-3z"/></svg></button>
+              <button class="shorts-action" id="shorts-mute" type="button" aria-label="Mute Short" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4V9Z"/><path class="sound-waves" d="M17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button>
+              <span class="shorts-action-divider"></span>
+              <button class="shorts-action" id="shorts-previous" type="button" aria-label="Previous Short" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+              <button class="shorts-action" id="shorts-next" type="button" aria-label="Next Short" data-testid="shorts-next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+            </div>
+          </div>
+        </section>
+        <div id="browse-view">
+        <section class="player-card" id="player-card" aria-label="Video player" data-testid="player-card" data-state="idle">
+          <div class="player-stage" id="player-stage">
+            <div class="player-mount" id="player-mount" data-testid="player-mount"></div>
+            <div class="player-placeholder" id="player-placeholder"><p class="placeholder-title" id="placeholder-title">Select a video</p><p class="placeholder-copy" id="placeholder-copy"></p></div>
+            <div class="player-loading" id="player-loading" hidden aria-hidden="true"><span class="spinner"></span></div>
+          </div>
+          <div class="player-details">
+            <div class="seek-row" id="seek-row" hidden><span id="current-time">0:00</span><input id="seek-control" type="range" min="0" max="100" step="1" value="0" aria-label="Seek through video" disabled><span id="duration">0:00</span></div>
+            <div class="player-controls">
+              <div class="transport-controls"><button class="control-button primary-control" id="pause-button" type="button" aria-label="Pause video" disabled data-testid="pause-button"><svg id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3v14H7zm7 0h3v14h-3z"/></svg><span id="pause-label">Pause</span></button><button class="control-button" id="stop-button" type="button" aria-label="Stop video" disabled data-testid="stop-button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg><span>Stop</span></button></div>
+              <div class="volume-controls"><button class="icon-button" id="mute-button" type="button" aria-label="Mute audio" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4V9Z"/><path class="sound-waves" d="M17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg></button><input id="volume-control" type="range" min="0" max="100" step="5" value="80" aria-label="Volume" disabled></div>
+              <button class="icon-button fullscreen-button" id="fullscreen-button" type="button" aria-label="Enter fullscreen" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg></button>
+            </div>
+            <div class="audio-language" id="audio-language" hidden>
+              <div class="audio-language-control"><label for="audio-track">Audio language</label><span class="audio-select"><select id="audio-track" aria-label="Audio language" data-testid="audio-language" disabled></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></span></div>
+              <span class="audio-language-message" id="audio-message" role="status" aria-live="polite"></span>
+            </div>
+            <div class="now-playing"><div><p class="eyebrow" id="player-kicker">YouTube</p><h2 id="media-title">Select a video</h2></div><span class="live-badge" id="live-badge" hidden>Live</span></div>
+            <div class="status-message" id="playback-status" role="status" aria-live="polite" data-testid="playback-status"></div>
+          </div>
+        </section>
+
+        <div class="browse-header"><div><h1 id="browse-title">Explore</h1><p id="browse-description">Short documentaries from YouTube.</p></div><span class="browse-provider" id="browse-provider">YOUTUBE</span></div>
+        <div class="topic-filters" id="topic-filters" role="group" aria-label="Explore YouTube topics"><button type="button" class="topic-button is-active" data-topic="Short documentaries" data-topic-title="Explore" aria-pressed="true">Explore</button><button type="button" class="topic-button" data-topic="Live music performances" data-topic-title="Music" aria-pressed="false">Music</button><button type="button" class="topic-button" data-topic="Travel films" data-topic-title="Travel" aria-pressed="false">Travel</button><button type="button" class="topic-button" data-topic="Cooking recipes" data-topic-title="Food" aria-pressed="false">Food</button><button type="button" class="topic-button" data-topic="Science explained" data-topic-title="Science" aria-pressed="false">Science</button><button type="button" class="topic-button" data-topic="Design architecture films" data-topic-title="Design" aria-pressed="false">Design</button><button type="button" class="topic-button" data-topic="Comedy stand up" data-topic-title="Comedy" aria-pressed="false">Comedy</button></div>
+        <section class="recent-section" id="recent-section" aria-label="Recently watched" hidden><div class="section-heading"><h2>Recently watched</h2><button class="text-button" id="clear-recents" type="button">Clear history</button></div><div class="recent-list" id="recent-list" data-testid="recent-list"></div></section>
+        <section class="search-section" id="search-section" aria-label="YouTube search results" hidden><div class="section-heading search-heading"><span id="search-status" role="status" aria-live="polite"></span><button class="text-button" id="close-search" type="button">Clear search</button></div><div class="search-results" id="search-results" data-testid="search-results"></div><button class="load-more-button" id="load-more-videos" type="button" hidden>Load more</button></section>
+        <section class="browse-empty" id="browse-empty" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h17v12l-5 5h-5l-3 3v-3H5V3Z"/><path d="M11 7v6m5-6v6"/></svg><h2>Watch a live channel</h2><p>Enter a Twitch channel name or paste its link above.</p></section>
+        <footer><span>Passenger</span><a href="/probe/">Browser check ↗</a></footer>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

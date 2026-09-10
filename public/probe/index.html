@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Browser diagnostics</title>
+<style>
+body{background:#0a0a0f;color:#e0e0e0;font-family:sans-serif;padding:15px;font-size:14px}
+h1{color:#00d4ff;text-align:center;font-size:1.2rem}
+.ok{color:#4ade80}
+.fail{color:#f87171}
+.gray{color:#888}
+.block{background:#0f0f1a;border:1px solid #2a2a3a;border-radius:8px;padding:10px;margin:8px 0}
+.mono{font-family:monospace;font-size:.7rem;color:#888;word-break:break-all}
+.r{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #141420;font-size:.78rem}
+.r:last-child{border-bottom:none}
+.l{color:#999}
+.btn{width:100%;padding:16px;background:#003366;border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin:4px 0}
+.btn:active{opacity:.6}
+.btn:disabled{opacity:.5;cursor:default}
+a{color:#00d4ff}
+pre{white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+
+<a href="/">← Back to player</a>
+<h1>Browser diagnostics</h1>
+<p class="gray">Checks browser capabilities, not playback performance. The microphone is tested only when you tap its button.</p>
+
+<div id="status" class="block" style="text-align:center;font-weight:600;">
+  <span id="st">...</span>
+</div>
+
+<div id="section-ua" class="block">
+  <b>User-Agent</b><br>
+  <span id="ua" class="mono">...</span>
+</div>
+
+<div id="section-engine" class="block">
+  <b>Engine</b><br>
+  <span id="eng" class="mono">...</span>
+</div>
+
+<div id="section-apis" class="block">
+  <b>APIs</b><br>
+  <div id="apis" style="font-size:.78rem;"></div>
+</div>
+
+<div id="section-codecs" class="block">
+  <b>Codecs</b><br>
+  <span id="codecs" class="mono">...</span>
+</div>
+
+<div id="section-webgl" class="block">
+  <b>WebGL</b><br>
+  <span id="webgl" class="mono">...</span>
+</div>
+
+<div class="block">
+  <b>WebAssembly</b><br>
+  <span id="wasm" class="mono">...</span>
+</div>
+
+<div id="section-mic" class="block">
+  <b>Microphone</b>
+  <button class="btn" id="btnMic">TEST MICROPHONE</button>
+  <div id="micResult" class="mono" style="color:#888;"></div>
+</div>
+
+<button class="btn" id="btnReport">GENERATE REPORT</button>
+<div id="reportActions" style="display:none">
+  <button class="btn" id="btnDownload">DOWNLOAD JSON</button>
+  <button class="btn" id="btnSend">SEND REPORT</button>
+</div>
+<p id="reportStatus" class="mono" role="status" aria-live="polite"></p>
+<pre id="reportBox" class="mono" style="display:none;background:#050510;border-radius:6px;padding:8px;margin-top:4px;max-height:400px;overflow-y:auto"></pre>
+
+<script>
+var st = document.getElementById('st');
+var currentReport = null;
+var autoReportTimer = null;
+var microphone = { status: 'not_requested' };
+
+function setStatus(text, color) {
+  st.textContent = text;
+  if (color) st.style.color = color;
+}
+
+setStatus('Testing...', '#4ade80');
+
+var uaStr = navigator.userAgent;
+document.getElementById('ua').textContent = uaStr;
+
+var isTargetBrowser = /QtCarBrowser|Tesla/i.test(uaStr);
+var isQt = /QtWebEngine/i.test(uaStr);
+setStatus(isTargetBrowser ? 'Target browser detected' : 'Standard browser', isTargetBrowser ? '#00d4ff' : '#4ade80');
+
+var chromeVer = (uaStr.match(/Chrome\/(\d+)/) || [])[1] || '?';
+var webkitVer = (uaStr.match(/AppleWebKit\/(\d+)/) || [])[1] || '?';
+document.getElementById('eng').textContent =
+  'Chromium: ' + chromeVer + ' | WebKit: ' + webkitVer +
+  ' | Platform: ' + (navigator.platform || '?') +
+  ' | Vendor: ' + (navigator.vendor || '?') +
+  ' | Lang: ' + navigator.language +
+  ' | Cores: ' + (navigator.hardwareConcurrency || '?') +
+  ' | RAM: ' + (navigator.deviceMemory || '?') + ' GB' +
+  ' | Touch: ' + (navigator.maxTouchPoints || 0) +
+  ' | Secure context: ' + !!window.isSecureContext +
+  ' | Cross-origin isolated: ' + !!window.crossOriginIsolated;
+
+var apisList = [
+  ['getUserMedia', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)],
+  ['enumerateDevices', !!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices)],
+  ['RTCPeerConnection', typeof RTCPeerConnection !== 'undefined' || typeof webkitRTCPeerConnection !== 'undefined'],
+  ['captureStream (canvas)', typeof HTMLCanvasElement !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function'],
+  ['PictureInPicture', !!document.pictureInPictureEnabled],
+  ['Fullscreen', !!(document.fullscreenEnabled || document.webkitFullscreenEnabled)],
+  ['ServiceWorker', 'serviceWorker' in navigator],
+  ['WebSocket', typeof WebSocket !== 'undefined'],
+  ['Worker', typeof Worker !== 'undefined'],
+  ['Fetch', typeof fetch === 'function'],
+  ['BigInt', typeof BigInt === 'function'],
+  ['SharedArrayBuffer', typeof SharedArrayBuffer !== 'undefined'],
+  ['OffscreenCanvas', typeof OffscreenCanvas !== 'undefined'],
+  ['AudioContext', typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined'],
+  ['AudioWorkletNode', typeof AudioWorkletNode !== 'undefined'],
+  ['MediaRecorder', typeof MediaRecorder !== 'undefined'],
+  ['WebAssembly', typeof WebAssembly !== 'undefined'],
+  ['Geolocation', 'geolocation' in navigator],
+  ['VideoDecoder (WebCodecs)', typeof VideoDecoder !== 'undefined'],
+  ['AudioDecoder (WebCodecs)', typeof AudioDecoder !== 'undefined'],
+  ['MediaSource', typeof MediaSource !== 'undefined'],
+  ['VideoFrame', typeof VideoFrame !== 'undefined'],
+  ['EncodedVideoChunk', typeof EncodedVideoChunk !== 'undefined'],
+  ['MediaStreamTrackProcessor', typeof MediaStreamTrackProcessor !== 'undefined'],
+  ['MediaStreamTrackGenerator', typeof MediaStreamTrackGenerator !== 'undefined'],
+  ['requestVideoFrameCallback', typeof HTMLVideoElement !== 'undefined' && typeof HTMLVideoElement.prototype.requestVideoFrameCallback === 'function'],
+  ['createImageBitmap', typeof createImageBitmap !== 'undefined'],
+  ['RTCRtpScriptTransform (insertable streams)', typeof RTCRtpScriptTransform !== 'undefined'],
+];
+var apiResults = {};
+for (var i = 0; i < apisList.length; i++) {
+  var name = apisList[i][0];
+  var ok = apisList[i][1];
+  apiResults[name] = ok;
+  var row = document.createElement('div');
+  row.className = 'r';
+  var label = document.createElement('span');
+  label.className = 'l';
+  label.textContent = name;
+  var value = document.createElement('span');
+  value.className = ok ? 'ok' : 'fail';
+  value.textContent = ok ? 'YES' : 'NO';
+  row.appendChild(label);
+  row.appendChild(value);
+  document.getElementById('apis').appendChild(row);
+}
+
+var codecTypes = [
+  ['H.264', 'video/mp4; codecs="avc1.42E01E"'],
+  ['H.265', 'video/mp4; codecs="hev1.1.6.L120.90"'],
+  ['VP8', 'video/webm; codecs="vp8"'],
+  ['VP9', 'video/webm; codecs="vp9"'],
+  ['AV1', 'video/mp4; codecs="av01.0.04M.08"'],
+  ['AAC', 'audio/mp4; codecs="mp4a.40.2"'],
+  ['Opus', 'audio/webm; codecs="opus"'],
+  ['Vorbis', 'audio/webm; codecs="vorbis"']
+];
+var codecResults = {};
+var codecSummary = [];
+for (var j = 0; j < codecTypes.length; j++) {
+  var codecName = codecTypes[j][0];
+  var mime = codecTypes[j][1];
+  var codec = { mime: mime };
+  try {
+    var media = document.createElement(mime.indexOf('audio/') === 0 ? 'audio' : 'video');
+    codec.canPlayType = media.canPlayType(mime);
+    codec.mediaSource = typeof MediaSource !== 'undefined' && typeof MediaSource.isTypeSupported === 'function'
+      ? MediaSource.isTypeSupported(mime) : null;
+    codecSummary.push(codecName + ': ' + (codec.canPlayType || 'unsupported') + ' (MSE: ' + codec.mediaSource + ')');
+  } catch (error) {
+    codec.error = error.message;
+    codecSummary.push(codecName + ': ' + error.message);
+  }
+  codecResults[codecName] = codec;
+}
+document.getElementById('codecs').textContent = codecSummary.join(' | ');
+
+function testWebGL(kind) {
+  var result = { available: false };
+  var gl = null;
+  try {
+    // A canvas cannot switch context types after one has been created.
+    var canvas = document.createElement('canvas');
+    gl = canvas.getContext(kind);
+    if (!gl && kind === 'webgl') gl = canvas.getContext('experimental-webgl');
+    result.available = !!gl;
+    if (gl) {
+      result.version = gl.getParameter(gl.VERSION);
+      result.renderer = gl.getParameter(gl.RENDERER);
+      result.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      var debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo) result.unmaskedRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+    }
+  } catch (error) {
+    result.error = error.message;
+  } finally {
+    if (gl) {
+      try {
+        var release = gl.getExtension('WEBGL_lose_context');
+        if (release) release.loseContext();
+      } catch (error) {
+        result.releaseError = error.message;
+      }
+    }
+  }
+  return result;
+}
+var webglResults = { webgl: testWebGL('webgl'), webgl2: testWebGL('webgl2') };
+document.getElementById('webgl').textContent =
+  'WebGL: ' + webglResults.webgl.available + ' | WebGL2: ' + webglResults.webgl2.available +
+  ' | GPU: ' + (webglResults.webgl.unmaskedRenderer || webglResults.webgl.renderer || 'unavailable');
+
+var wasmResults = {
+  validateAvailable: typeof WebAssembly !== 'undefined' && typeof WebAssembly.validate === 'function',
+  emptyModule: false,
+  mutableGlobalModule: false
+};
+if (wasmResults.validateAvailable) {
+  try {
+    wasmResults.emptyModule = WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]));
+    wasmResults.mutableGlobalModule = WebAssembly.validate(new Uint8Array([
+      0, 97, 115, 109, 1, 0, 0, 0,
+      6, 6, 1, 127, 1, 65, 0, 11,
+      7, 5, 1, 1, 103, 3, 0
+    ]));
+  } catch (error) {
+    wasmResults.error = error.message;
+  }
+}
+document.getElementById('wasm').textContent =
+  'validate(): ' + wasmResults.validateAvailable + ' | Empty module: ' + wasmResults.emptyModule +
+  ' | Mutable global module: ' + wasmResults.mutableGlobalModule +
+  (wasmResults.error ? ' | Error: ' + wasmResults.error : '');
+setStatus('Diagnostic complete — ' + (isTargetBrowser ? 'target browser detected' : 'standard browser'), '#4ade80');
+
+document.getElementById('btnMic').onclick = function () {
+  var mr = document.getElementById('micResult');
+  var button = this;
+  button.disabled = true;
+  microphone = { status: 'pending' };
+  mr.textContent = 'Testing...';
+  refreshVisibleReport();
+  function complete() {
+    button.disabled = false;
+    refreshVisibleReport();
+  }
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function (stream) {
+        try {
+          var tracks = stream.getAudioTracks();
+          microphone = { status: tracks.length ? 'available' : 'no_audio_track' };
+          if (tracks.length) microphone.label = tracks[0].label || '';
+          mr.textContent = tracks.length ? 'Microphone OK. ' + microphone.label : 'No audio track returned.';
+        } finally {
+          stream.getTracks().forEach(function (track) { track.stop(); });
+          complete();
+        }
+      })
+      .catch(function (err) {
+        microphone = { status: 'error', name: err.name, message: err.message.substring(0, 160) };
+        mr.textContent = microphone.name + ': ' + microphone.message;
+        complete();
+      });
+  } else {
+    microphone = { status: 'unsupported' };
+    mr.textContent = 'getUserMedia not available';
+    complete();
+  }
+};
+
+function buildReport() {
+  return {
+    timestamp: new Date().toISOString(),
+    userAgent: uaStr,
+    isTargetBrowser: isTargetBrowser,
+    isQtWebEngine: isQt,
+    engine: { chromium: chromeVer, webkit: webkitVer },
+    environment: {
+      platform: navigator.platform || null,
+      vendor: navigator.vendor || null,
+      language: navigator.language || null,
+      cores: navigator.hardwareConcurrency || null,
+      memoryGB: navigator.deviceMemory || null,
+      touchPoints: navigator.maxTouchPoints || 0,
+      screen: { width: screen.width, height: screen.height, devicePixelRatio: window.devicePixelRatio || 1 },
+      secureContext: !!window.isSecureContext,
+      crossOriginIsolated: !!window.crossOriginIsolated
+    },
+    apis: apiResults,
+    codecs: codecResults,
+    webgl: webglResults,
+    wasm: wasmResults,
+    microphone: microphone
+  };
+}
+
+function generateReport() {
+  currentReport = JSON.stringify(buildReport(), null, 2);
+  document.getElementById('reportBox').style.display = 'block';
+  document.getElementById('reportBox').textContent = currentReport;
+  document.getElementById('reportActions').style.display = 'block';
+  document.getElementById('btnReport').textContent = 'REFRESH REPORT';
+}
+
+function refreshVisibleReport() {
+  if (currentReport !== null) generateReport();
+}
+
+function reportStatus(message, failed) {
+  var element = document.getElementById('reportStatus');
+  element.textContent = message;
+  element.className = failed ? 'mono fail' : 'mono ok';
+}
+
+function reportBlob(json) {
+  var blob = new Blob([json], { type: 'application/json' });
+  if (blob.size > 32 * 1024) throw new Error('Report exceeds the 32 KiB upload limit. Download the JSON instead.');
+  return blob;
+}
+
+document.getElementById('btnReport').onclick = generateReport;
+document.getElementById('btnDownload').onclick = function () {
+  if (currentReport === null) generateReport();
+  var url = URL.createObjectURL(new Blob([currentReport], { type: 'application/json' }));
+  var link = document.createElement('a');
+  link.href = url;
+  link.download = 'browser-diagnostic-' + new Date().toISOString().replace(/[:.]/g, '-') + '.json';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+};
+
+function sendReport(json) {
+  var button = document.getElementById('btnSend');
+  var blob;
+  try {
+    blob = reportBlob(json);
+    if (typeof fetch !== 'function') throw new Error('This browser cannot send reports. Download the JSON instead.');
+  } catch (error) {
+    reportStatus(error.message, true);
+    return;
+  }
+  button.disabled = true;
+  reportStatus('Sending report...', false);
+  fetch('/api/probe-report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: blob
+  }).then(function (response) {
+    return response.json().then(function (data) {
+      if (response.status !== 201 || !data.ok || typeof data.id !== 'string') {
+        throw new Error(data.error || ('Report was not saved (HTTP ' + response.status + ').'));
+      }
+      reportStatus('Report saved. ID: ' + data.id, false);
+    });
+  }).catch(function (error) {
+    reportStatus('Could not send report: ' + error.message, true);
+  }).then(function () {
+    button.disabled = false;
+  });
+}
+
+document.getElementById('btnSend').onclick = function () {
+  clearTimeout(autoReportTimer);
+  if (currentReport === null) generateReport();
+  sendReport(currentReport);
+};
+
+if (isTargetBrowser) {
+  autoReportTimer = setTimeout(function () {
+    try {
+      var json = JSON.stringify(buildReport());
+      if (navigator.sendBeacon) {
+        var queued = navigator.sendBeacon('/api/probe-report', reportBlob(json));
+        reportStatus(queued
+          ? 'Automatic report queued. Generate a report and tap Send report to confirm storage with an ID.'
+          : 'Automatic report could not be queued. Generate a report to send it manually.', !queued);
+      } else {
+        sendReport(json);
+      }
+    } catch (error) {
+      reportStatus('Automatic report failed: ' + error.message, true);
+    }
+  }, 3000);
+}
+</script>
+</body>
+</html>
